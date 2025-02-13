@@ -1,12 +1,13 @@
 import asyncio
 from random import randint
 
-from telegram import Update
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup
 from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 
 from constants import DROP_LIST
-from data import users_status, users_roll_history, total_spins
+from data import users_roll_history, total_spins, users_status
+from utils.datashare import SAVED_DATA
 
 
 def get_random_status(update: Update) -> tuple[str, int]:
@@ -35,13 +36,15 @@ async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     total_spins[username] += 1
 
     combo: int = 1
+    previous_text = None
+
     for _ in range(25):
         rnd = get_random_status(update)
         text = rnd[0]
         change = rnd[1]
 
         new_message = f"🎲 • Крутим... \n1/{change} - {text}"
-        if message.text == new_message:
+        if previous_text == new_message:
             combo += 1
             new_message = f"🎲 • Крутим... \n1/{change} - {text} (x{combo})"
         else:
@@ -49,6 +52,7 @@ async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
         try:
             await message.edit_text(new_message)
+            previous_text = new_message
         except BadRequest as e:
             print(e)
 
@@ -57,7 +61,6 @@ async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     rnd = get_random_status(update)
 
     user = update.message.from_user
-    users_status[user.username] = rnd
 
     if user.username not in users_roll_history.keys():
         users_roll_history[user.username] = [rnd]
@@ -66,4 +69,21 @@ async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if len(users_roll_history[user.username]) > 10:
             users_roll_history[user.username].pop(0)
 
-    await message.edit_text(f"💫 • Вы получили статус: {rnd[0]} (1/{rnd[1]})")
+    keyboard = [
+        [InlineKeyboardButton("Сохранить", callback_data="roll-save")],
+        [InlineKeyboardButton("Пропустить", callback_data="roll-skip")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    SAVED_DATA[f"{username}-roll-rnd"] = rnd
+
+    await message.edit_text(f"💫 • Вы получили: {rnd[0]} (1/{rnd[1]})", reply_markup=reply_markup)
+
+async def roll_reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    username = update.callback_query.from_user.username
+    data = update.callback_query.data
+    if data == "roll-save":
+        rnd = SAVED_DATA[f"{username}-roll-rnd"]
+        users_status[username] = rnd
+        await update.callback_query.edit_message_text(text=f'😍 • Вы успешно сохранили новый титул!\n💫 • Новый статус: {rnd[0]} (1/{rnd[1]})', reply_markup=None)
+    elif data == "roll-skip":
+        await update.callback_query.edit_message_text(text=f'🚽 • Титул был удалён', reply_markup=None)

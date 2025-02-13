@@ -5,7 +5,10 @@ from commands.roll_executor import roll
 from commands.profile_executor import profile
 from commands.message_executor import on_message
 
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from utils.reply_executor import reply_click
+
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler
+
 
 def main() -> None:
     application = Application.builder().token(TOKEN).build()
@@ -14,6 +17,7 @@ def main() -> None:
     application.add_handler(CommandHandler("roll", roll))
     application.add_handler(CommandHandler("profile", profile))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_message))
+    application.add_handler(CallbackQueryHandler(reply_click))
 
     application.run_polling()
 
