@@ -9,7 +9,7 @@ from data import users_status, registered_users, total_spins
 async def profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.message.from_user
 
-    display_name = user.first_name + " " + user.last_name
+    display_name = user.first_name + " " + user.last_name if user.last_name else ""
     registration_date = registered_users[user.username] if user.username in registered_users else '/start'
     status = users_status[user.username] if user.username in users_status else "Пусто..."
     total_user_spins = total_spins[user.username] if user.username in total_spins else 0

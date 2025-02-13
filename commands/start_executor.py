@@ -14,9 +14,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             f'😁 • Добро пожаловать {username}!'
         )
 
-    reply = ReplyKeyboardMarkup([["/roll", "/profile"]])
+    reply = ReplyKeyboardMarkup([["/roll", "/profile"], ["/inventory", "/leaderboard"]])
 
     await update.message.reply_text(
-        '🎲 • RNG Game Bot • 🎲\nВерсия бота –› 01v\nАвтор –› @k0cteJl\n\nКоманды:\n/roll - крутить\n/profile - проверить ваш статус',
+        '🎲 • RNG Game Bot • 🎲\nВерсия бота –› 01v\nАвтор –› @k0cteJl\n\nКоманды:\n/roll - крутить\n/profile - проверить ваш статус\n/inventory - инвентарь (in dev)\n/leaderboard - таблица лидеров',
         reply_markup=reply
     )
