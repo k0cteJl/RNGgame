@@ -1,5 +1,6 @@
 import sqlite3
 
+from commands.help_executor import on_help
 from commands.leaderboard_executor import leaderboard
 from constants import *
 
@@ -24,10 +25,15 @@ def main() -> None:
         print(f":):\n{e}")
         create_tables()
         data.users_status, data.users_roll_history, data.registered_users, data.total_spins = load()
+    print(data.users_status)
+    print(data.users_roll_history)
+    print(data.registered_users)
+    print(data.total_spins)
 
     application = Application.builder().token(TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", on_help))
     application.add_handler(CommandHandler("roll", roll))
     application.add_handler(CommandHandler("profile", profile))
     application.add_handler(CommandHandler("inventory", inventory))

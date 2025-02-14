@@ -9,61 +9,32 @@ def create_tables() -> None:
     cursor = conn.cursor()
 
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        username TEXT PRIMARY KEY,
-        registration_date TEXT,
-        total_spins INTEGER
-    )
-    """)
+        CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY,
+            registration_date TEXT,
+            total_spins INTEGER
+        )
+        """)
 
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS user_status (
-        username TEXT,
-        title TEXT,
-        chance INTEGER,
-        FOREIGN KEY(username) REFERENCES users(username)
-    )
-    """)
+        CREATE TABLE IF NOT EXISTS user_status (
+            username TEXT PRIMARY KEY,  -- Добавлен первичный ключ
+            title TEXT,
+            chance INTEGER,
+            FOREIGN KEY(username) REFERENCES users(username)
+        )
+        """)
 
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS roll_history (
-        roll_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT,
-        title TEXT,
-        chance INTEGER,
-        roll_date TEXT,
-        FOREIGN KEY(username) REFERENCES users(username)
-    )
-    """)
-
-    conn.commit()
-    conn.close()
-
-def save() -> None:
-    from data import users_status, users_roll_history, registered_users, total_spins
-
-    conn = sqlite3.connect("users.db")
-    cursor = conn.cursor()
-
-    for username, reg_date in registered_users.items():
-        total_spins_value = total_spins.get(username, 0)
-        cursor.execute("""
-        INSERT OR REPLACE INTO users (username, registration_date, total_spins)
-        VALUES (?, ?, ?)
-        """, (username, reg_date.isoformat(), total_spins_value))
-
-    for username, (title, chance) in users_status.items():
-        cursor.execute("""
-        INSERT OR REPLACE INTO user_status (username, title, chance)
-        VALUES (?, ?, ?)
-        """, (username, title, chance))
-
-    for username, rolls in users_roll_history.items():
-        for title, chance in rolls:
-            cursor.execute("""
-            INSERT INTO roll_history (username, title, chance, roll_date)
-            VALUES (?, ?, ?, ?)
-            """, (username, title, chance, datetime.now().isoformat()))
+        CREATE TABLE IF NOT EXISTS roll_history (
+            roll_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            title TEXT,
+            chance INTEGER,
+            roll_date TEXT,
+            FOREIGN KEY(username) REFERENCES users(username)
+        )
+        """)
 
     conn.commit()
     conn.close()
@@ -99,25 +70,42 @@ def save_user(username):
     conn = sqlite3.connect("users.db")
     cursor = conn.cursor()
 
+    # Начало транзакции
+    conn.execute("BEGIN TRANSACTION")
+
+    # Сохраняем основную информацию о пользователе
     total_spins_value = data.total_spins.get(username, 0)
     cursor.execute("""
-        INSERT OR REPLACE INTO users (username, registration_date, total_spins)
-        VALUES (?, ?, ?)
-        """, (username, data.registered_users[username].isoformat(), total_spins_value))
+                INSERT OR REPLACE INTO users (username, registration_date, total_spins)
+                VALUES (?, ?, ?)
+            """, (username, data.registered_users[username].isoformat(), total_spins_value))
 
+    # Сохраняем статус пользователя
     title = data.users_status[username][0]
     chance = data.users_status[username][1]
     cursor.execute("""
-        INSERT OR REPLACE INTO user_status (username, title, chance)
-        VALUES (?, ?, ?)
-        """, (username, title, chance))
+                INSERT OR REPLACE INTO user_status (username, title, chance)
+                VALUES (?, ?, ?)
+            """, (username, title, chance))
 
+    # Сохраняем историю прокруток
     rolls = data.users_roll_history[username]
     for title, chance in rolls:
         cursor.execute("""
-            INSERT INTO roll_history (username, title, chance, roll_date)
-            VALUES (?, ?, ?, ?)
-            """, (username, title, chance, datetime.now().isoformat()))
+                    INSERT INTO roll_history (username, title, chance, roll_date)
+                    VALUES (?, ?, ?, ?)
+                """, (username, title, chance, datetime.now().isoformat()))
+
+    # Удаляем старые записи, оставляя только последние 10
+    cursor.execute("""
+                DELETE FROM roll_history
+                WHERE username = ? AND roll_id NOT IN (
+                    SELECT roll_id FROM roll_history
+                    WHERE username = ?
+                    ORDER BY roll_date DESC
+                    LIMIT 10
+                )
+            """, (username, username))
 
     conn.commit()
     conn.close()
