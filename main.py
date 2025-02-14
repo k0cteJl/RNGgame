@@ -25,10 +25,6 @@ def main() -> None:
         print(f":):\n{e}")
         create_tables()
         data.users_status, data.users_roll_history, data.registered_users, data.total_spins = load()
-    print(data.users_status)
-    print(data.users_roll_history)
-    print(data.registered_users)
-    print(data.total_spins)
 
     application = Application.builder().token(TOKEN).build()
 

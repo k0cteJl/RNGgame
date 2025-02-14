@@ -19,7 +19,7 @@ def get_random_status(update: Update) -> tuple[str, int]:
     if user.is_bot:
         return DROP_LIST[2][0], 2
 
-    for chance in sorted(DROP_LIST.keys(), reverse=True):
+    for chance in sorted(DROP_LIST.keys()):
         random_value = randint(0, chance)
         if random_value == chance:
             next_chance = next((k for k in sorted(DROP_LIST.keys(), reverse=True) if k < chance), None)
@@ -31,6 +31,7 @@ def get_random_status(update: Update) -> tuple[str, int]:
             else:
                 status = DROP_LIST[chance][randint(0, len(DROP_LIST[chance]) - 1)]
                 return status, chance
+
     return DROP_LIST[2][0], 2
 
 async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -38,7 +39,7 @@ async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     cooldown = np.ceil(ROLL_COOLDOWN - (datetime.now() - data.users_cooldown[username]).total_seconds()) if username in data.users_cooldown else 0
     if cooldown > 0:
-        await update.message.reply_text(f"💢 • Ошибка! • 💢\nКоманду /roll можно использовать раз в 10 секунд.\nПопробуйте снова через {cooldown} секунд.")
+        await update.message.reply_text(f"💢 • Ошибка! • 💢\nКоманду /roll можно использовать раз в 10 секунд.\nПопробуйте снова через {int   (cooldown)} секунд.")
         return
 
     message = await update.message.reply_text("🎲 • Ожидайте... • 🎲")
