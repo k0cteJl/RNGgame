@@ -1,13 +1,15 @@
 import asyncio
+from datetime import datetime
 from random import randint
 
+import numpy as np
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 
 import data
 
-from constants import DROP_LIST
+from constants import DROP_LIST, ROLL_COOLDOWN, ROLL_EFFECT
 from utils import sqlite
 from utils.datashare import SAVED_DATA
 
@@ -32,52 +34,59 @@ def get_random_status(update: Update) -> tuple[str, int]:
     return DROP_LIST[2][0], 2
 
 async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    message = await update.message.reply_text("🎲 • Начинаем! • 🎲")
-
-    await asyncio.sleep(1)
-
     username = update.message.from_user.username
+
+    cooldown = np.ceil(ROLL_COOLDOWN - (datetime.now() - data.users_cooldown[username]).total_seconds()) if username in data.users_cooldown else 0
+    if cooldown > 0:
+        await update.message.reply_text(f"💢 • Ошибка! • 💢\nКоманду /roll можно использовать раз в 10 секунд.\nПопробуйте снова через {cooldown} секунд.")
+        return
+
+    message = await update.message.reply_text("🎲 • Ожидайте... • 🎲")
+
+    if ROLL_EFFECT:
+        await asyncio.sleep(1)
+
     if username not in data.total_spins:
         data.total_spins[username] = 0
     data.total_spins[username] += 1
 
-    combo: int = 1
-    previous_text = None
+    if ROLL_EFFECT:
+        combo: int = 1
+        previous_text = None
 
-    for _ in range(25):
-        rnd = get_random_status(update)
-        text = rnd[0]
-        change = rnd[1]
+        for _ in range(25):
+            rnd = get_random_status(update)
+            text = rnd[0]
+            change = rnd[1]
 
-        new_message = f"🎲 • Крутим... \n1/{change} - {text}"
-        if previous_text == new_message:
-            combo += 1
-            new_message = f"🎲 • Крутим... \n1/{change} - {text} (x{combo})"
-        else:
-            combo = 1
+            new_message = f"🎲 • Крутим... \n1/{change} - {text}"
+            if previous_text == new_message:
+                combo += 1
+                new_message = f"🎲 • Крутим... \n1/{change} - {text} (x{combo})"
+            else:
+                combo = 1
 
-        try:
-            await message.edit_text(new_message)
-            previous_text = new_message
-        except BadRequest as e:
-            print(e)
+            try:
+                await message.edit_text(new_message)
+                previous_text = new_message
+            except BadRequest as e:
+                print(e)
 
-        await asyncio.sleep(0.1)
+            await asyncio.sleep(0.1)
 
     rnd = get_random_status(update)
+    data.users_cooldown[username] = datetime.now()
 
-    user = update.message.from_user
-
-    if user.username not in data.users_roll_history.keys():
-        data.users_roll_history[user.username] = [rnd]
+    if username not in data.users_roll_history.keys():
+        data.users_roll_history[username] = [rnd]
     else:
-        data.users_roll_history[user.username].append(rnd)
-        if len(data.users_roll_history[user.username]) > 10:
-            data.users_roll_history[user.username].pop(0)
+        data.users_roll_history[username].append(rnd)
+        if len(data.users_roll_history[username]) > 10:
+            data.users_roll_history[username].pop(0)
 
     keyboard = [
-        [InlineKeyboardButton("Сохранить", callback_data="roll-save")],
-        [InlineKeyboardButton("Пропустить", callback_data="roll-skip")],
+        [InlineKeyboardButton("Сохранить", callback_data="roll-save"),
+         InlineKeyboardButton("Пропустить", callback_data="roll-skip")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 

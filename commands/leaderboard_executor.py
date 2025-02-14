@@ -18,7 +18,7 @@ async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         user = update.message.from_user
         word = "прокруток" if score % 10 == 1 else "прокрутка"
         word = "прокрутки" if score % 10 == 2 else word
-        message += f"{spec_symbol}{i}. [{data.users_status[user.username][0] if user.username in data.users_status else "Нету статуса."}] {username} - {score} {word}\n"
+        message += f"{spec_symbol}{i}. [{data.users_status[username][0] if user.username in data.users_status else "Нету статуса."}] {username} - {score} {word}\n"
 
     for i in range(np.clip(5-len(data.total_spins), 0, 5)):
         message += "🪨 - Пустое место.\n"
