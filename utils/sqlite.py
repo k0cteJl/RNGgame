@@ -1,9 +1,10 @@
 import sqlite3
 from datetime import datetime
-from time import sleep
+
+import data
 
 
-def create_tables():
+def create_tables() -> None:
     conn = sqlite3.connect("users.db")
     cursor = conn.cursor()
 
@@ -38,7 +39,7 @@ def create_tables():
     conn.commit()
     conn.close()
 
-def save():
+def save() -> None:
     from data import users_status, users_roll_history, registered_users, total_spins
 
     conn = sqlite3.connect("users.db")
@@ -94,8 +95,29 @@ def load():
     conn.close()
     return users_status, users_roll_history, registered_users, total_spins
 
-async def start_autosave():
-    sleep(20)
-    save()
-    print("[SQLITE] База сохранена автоматически")
-    await start_autosave()
+def save_user(username):
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
+
+    total_spins_value = data.total_spins.get(username, 0)
+    cursor.execute("""
+        INSERT OR REPLACE INTO users (username, registration_date, total_spins)
+        VALUES (?, ?, ?)
+        """, (username, data.registered_users[username].isoformat(), total_spins_value))
+
+    title = data.users_status[username][0]
+    chance = data.users_status[username][1]
+    cursor.execute("""
+        INSERT OR REPLACE INTO user_status (username, title, chance)
+        VALUES (?, ?, ?)
+        """, (username, title, chance))
+
+    rolls = data.users_roll_history[username]
+    for title, chance in rolls:
+        cursor.execute("""
+            INSERT INTO roll_history (username, title, chance, roll_date)
+            VALUES (?, ?, ?, ?)
+            """, (username, title, chance, datetime.now().isoformat()))
+
+    conn.commit()
+    conn.close()

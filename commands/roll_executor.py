@@ -5,8 +5,10 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKe
 from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 
+import data
+
 from constants import DROP_LIST
-from data import users_roll_history, total_spins, users_status
+from utils import sqlite
 from utils.datashare import SAVED_DATA
 
 
@@ -31,9 +33,9 @@ async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await asyncio.sleep(1)
 
     username = update.message.from_user.username
-    if username not in total_spins:
-        total_spins[username] = 0
-    total_spins[username] += 1
+    if username not in data.total_spins:
+        data.total_spins[username] = 0
+    data.total_spins[username] += 1
 
     combo: int = 1
     previous_text = None
@@ -62,12 +64,12 @@ async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     user = update.message.from_user
 
-    if user.username not in users_roll_history.keys():
-        users_roll_history[user.username] = [rnd]
+    if user.username not in data.users_roll_history.keys():
+        data.users_roll_history[user.username] = [rnd]
     else:
-        users_roll_history[user.username].append(rnd)
-        if len(users_roll_history[user.username]) > 10:
-            users_roll_history[user.username].pop(0)
+        data.users_roll_history[user.username].append(rnd)
+        if len(data.users_roll_history[user.username]) > 10:
+            data.users_roll_history[user.username].pop(0)
 
     keyboard = [
         [InlineKeyboardButton("Сохранить", callback_data="roll-save")],
@@ -80,10 +82,12 @@ async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def roll_reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     username = update.callback_query.from_user.username
-    data = update.callback_query.data
-    if data == "roll-save":
+    query_data = update.callback_query.data
+    if query_data == "roll-save":
         rnd = SAVED_DATA[f"{username}-roll-rnd"]
-        users_status[username] = rnd
+        data.users_status[username] = rnd
         await update.callback_query.edit_message_text(text=f'😍 • Вы успешно сохранили новый титул!\n💫 • Новый статус: {rnd[0]} (1/{rnd[1]})', reply_markup=None)
-    elif data == "roll-skip":
+    elif query_data == "roll-skip":
         await update.callback_query.edit_message_text(text=f'🚽 • Титул был удалён', reply_markup=None)
+
+    sqlite.save_user(username)

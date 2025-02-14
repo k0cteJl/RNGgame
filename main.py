@@ -1,4 +1,4 @@
-import asyncio
+import sqlite3
 
 from commands.leaderboard_executor import leaderboard
 from constants import *
@@ -8,18 +8,22 @@ from commands.roll_executor import roll
 from commands.profile_executor import profile
 from commands.inventory_executor import inventory
 from commands.message_executor import on_message
-from utils import sqlite
+from utils.sqlite import create_tables, load
 
 from utils.reply_executor import reply_click
 
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler
 
+import data
+
 
 def main() -> None:
-    sqlite.create_tables()
-
-    import data
-    data.users_status, data.users_roll_history, data.registered_users, data.total_spins = sqlite.load()
+    try:
+        data.users_status, data.users_roll_history, data.registered_users, data.total_spins = load()
+    except sqlite3.Error as e:
+        print(f":):\n{e}")
+        create_tables()
+        data.users_status, data.users_roll_history, data.registered_users, data.total_spins = load()
 
     application = Application.builder().token(TOKEN).build()
 
@@ -31,7 +35,6 @@ def main() -> None:
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_message))
     application.add_handler(CallbackQueryHandler(reply_click))
 
-    asyncio.run(sqlite.start_autosave())
     application.run_polling()
 
 if __name__ == '__main__':

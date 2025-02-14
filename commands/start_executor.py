@@ -3,13 +3,13 @@ from datetime import datetime
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ContextTypes
 
-from data import registered_users
+import data
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     username = update.message.from_user.username
-    if username not in registered_users:
-        registered_users[username] = datetime.now()
+    if username not in data.registered_users:
+        data.registered_users[username] = datetime.now()
         await update.message.reply_text(
             f'😁 • Добро пожаловать {username}!'
         )
