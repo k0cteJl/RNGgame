@@ -17,15 +17,19 @@ def get_random_status(update: Update) -> tuple[str, int]:
     if user.is_bot:
         return DROP_LIST[2][0], 2
 
-    status_chance = 2
-    status = DROP_LIST[2][randint(0, len(DROP_LIST[2])-1)]
-    for chance in DROP_LIST.keys():
-        i = randint(1, chance)
-        if i == chance // 2:
-            status_chance = chance
-            status = DROP_LIST[chance][randint(0, len(DROP_LIST[chance])-1)]
-            break
-    return status, status_chance
+    for chance in sorted(DROP_LIST.keys(), reverse=True):
+        random_value = randint(0, chance)
+        if random_value == chance:
+            next_chance = next((k for k in sorted(DROP_LIST.keys(), reverse=True) if k < chance), None)
+            if next_chance is not None:
+                next_random_value = randint(0, next_chance)
+                if next_random_value == 1:
+                    status = DROP_LIST[chance][randint(0, len(DROP_LIST[chance]) - 1)]
+                    return status, chance
+            else:
+                status = DROP_LIST[chance][randint(0, len(DROP_LIST[chance]) - 1)]
+                return status, chance
+    return DROP_LIST[2][0], 2
 
 async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = await update.message.reply_text("🎲 • Начинаем! • 🎲")
@@ -76,6 +80,7 @@ async def roll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         [InlineKeyboardButton("Пропустить", callback_data="roll-skip")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
+
     SAVED_DATA[f"{username}-roll-rnd"] = rnd
 
     await message.edit_text(f"💫 • Вы получили: {rnd[0]} (1/{rnd[1]})", reply_markup=reply_markup)

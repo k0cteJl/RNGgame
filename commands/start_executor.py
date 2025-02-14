@@ -11,7 +11,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if username not in data.registered_users:
         data.registered_users[username] = datetime.now()
         await update.message.reply_text(
-            f'😁 • Добро пожаловать {username}!'
+            f'😁 • Добро пожаловать {username}! Вводи комманду /help для большей информации.'
         )
 
     reply = ReplyKeyboardMarkup([["/roll", "/profile"], ["/inventory", "/leaderboard"]])
