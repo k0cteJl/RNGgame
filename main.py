@@ -22,7 +22,7 @@ def main() -> None:
     try:
         data.users_status, data.users_roll_history, data.registered_users, data.total_spins = load()
     except sqlite3.Error as e:
-        print(f":):\n{e}")
+        print(f":)\n{e}")
         create_tables()
         data.users_status, data.users_roll_history, data.registered_users, data.total_spins = load()
 

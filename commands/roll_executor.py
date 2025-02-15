@@ -13,24 +13,20 @@ from constants import DROP_LIST, ROLL_COOLDOWN, ROLL_EFFECT
 from utils import sqlite
 from utils.datashare import SAVED_DATA
 
+from random import randint, choice
 
 def get_random_status(update: Update) -> tuple[str, int]:
     user = update.message.from_user
     if user.is_bot:
         return DROP_LIST[2][0], 2
 
-    for chance in sorted(DROP_LIST.keys()):
+    chances = sorted(DROP_LIST.keys(), reverse=True)
+
+    for chance in chances:
         random_value = randint(0, chance)
         if random_value == chance:
-            next_chance = next((k for k in sorted(DROP_LIST.keys(), reverse=True) if k < chance), None)
-            if next_chance is not None:
-                next_random_value = randint(0, next_chance)
-                if next_random_value == 1:
-                    status = DROP_LIST[chance][randint(0, len(DROP_LIST[chance]) - 1)]
-                    return status, chance
-            else:
-                status = DROP_LIST[chance][randint(0, len(DROP_LIST[chance]) - 1)]
-                return status, chance
+            status = choice(DROP_LIST[chance])
+            return status, chance
 
     return DROP_LIST[2][0], 2
 
